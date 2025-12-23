@@ -1423,3 +1423,18 @@ footer {
     transform: translateY(0);
   }
 }
+.google-btn {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 12px;
+  border: 1px solid #ddd;
+  background: white;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.divider {
+  text-align: center;
+  margin: 10px 0;
+  color: #999;
+}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { FaTrash } from "react-icons/fa";
+import { AnimatePresence } from 'framer-motion';
+import { useUser, useClerk } from "@clerk/clerk-react";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -12,38 +14,37 @@ import CategoriesPage from "./pages/CategoriesPage";
 import BrandsPage from "./pages/BrandsPage";
 import AuthModals from "./components/AuthModals";
 
+
 import api from "./api";
 import "./App.css";
 
 function App() {
+  const { user, isSignedIn } = useUser();
+  const { signOut } = useClerk();
+
   const [cartItems, setCartItems] = useState(
     JSON.parse(localStorage.getItem("cart") || "[]")
   );
   const [showAuthModal, setShowAuthModal] = useState(null);
-  const [user, setUser] = useState(null);
   const [toast, setToast] = useState("");
   const [products, setProducts] = useState([]);
 
-  // ✅ Load user from localStorage (stay logged in after refresh)
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) setUser(JSON.parse(savedUser));
-  }, []);
-
-  useEffect(() => {
-    if (user) localStorage.setItem("user", JSON.stringify(user));
-    else localStorage.removeItem("user");
-  }, [user]);
-
-  // ✅ Save cart to localStorage
+  // 🛒 Save cart
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cartItems));
   }, [cartItems]);
 
-  // ✅ Fetch products
+  // 📦 Fetch products
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Close auth modal once Clerk reports the user is signed in (after sign-in/up)
+  useEffect(() => {
+    if (isSignedIn) {
+      setShowAuthModal(null);
+    }
+  }, [isSignedIn]);
 
   const fetchProducts = async () => {
     try {
@@ -59,13 +60,13 @@ function App() {
     }
   };
 
-  // ✅ Toast
+  // 🔔 Toast
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(""), 2000);
   };
 
-  // ✅ Add to Cart (with stock check)
+  // 🛒 Add to Cart
   const addToCart = (product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.id === product.id);
@@ -81,32 +82,25 @@ function App() {
           return prev;
         }
       }
-      return [
-        ...prev,
-        { ...product, quantity: 1, stock: product.stock || Infinity },
-      ];
+      return [...prev, { ...product, quantity: 1 }];
     });
     showToast(`${product.name} added to cart!`);
   };
 
-  // ✅ Remove item
   const removeFromCart = (productId) =>
     setCartItems((prev) => prev.filter((item) => item.id !== productId));
 
-  // ✅ Update quantity
   const updateQuantity = (productId, newQuantity) => {
     if (newQuantity < 1) return;
     setCartItems((prev) =>
       prev.map((item) =>
-        item.id === productId
-          ? { ...item, quantity: Math.min(newQuantity, item.stock || Infinity) }
-          : item
+        item.id === productId ? { ...item, quantity: newQuantity } : item
       )
     );
   };
 
-  // ✅ Place order
-  const handleOrder = (items, total, customer, paymentMethod) => {
+  // 🧾 Place order
+  const handleOrder = (items, total, customer) => {
     if (!items.length) return;
     showToast(
       `Order placed! Total: $${total.toFixed(2)} | Customer: ${customer.name}`
@@ -114,13 +108,11 @@ function App() {
     setCartItems([]);
   };
 
-  // ✅ Auth
-  const handleLogin = (userData) => {
-    setUser(userData);
-    setShowAuthModal(null);
+  // 🔐 Clerk callbacks
+  // Modal will close automatically when user signs in/up (handled in AuthModals)
+  const handleLogout = async () => {
+    await signOut();
   };
-
-  const handleLogout = () => setUser(null);
 
   return (
     <Router>
@@ -128,7 +120,7 @@ function App() {
         {toast && <div className="toast-message">{toast}</div>}
 
         <Header
-          user={user}
+          user={isSignedIn ? user : null}
           onLoginClick={() => setShowAuthModal("signin")}
           onLogout={handleLogout}
           cartCount={cartItems.reduce(
@@ -145,7 +137,7 @@ function App() {
                 <HomePage
                   addToCart={addToCart}
                   products={products}
-                  user={user}
+                  user={isSignedIn ? user : null}
                   onRequireSignIn={() => setShowAuthModal("signin")}
                 />
               }
@@ -156,7 +148,7 @@ function App() {
                 <ProductsPage
                   addToCart={addToCart}
                   products={products}
-                  user={user}
+                  user={isSignedIn ? user : null}
                   onRequireSignIn={() => setShowAuthModal("signin")}
                 />
               }
@@ -167,7 +159,7 @@ function App() {
                 <CategoriesPage
                   addToCart={addToCart}
                   products={products}
-                  user={user}
+                  user={isSignedIn ? user : null}
                   onRequireSignIn={() => setShowAuthModal("signin")}
                 />
               }
@@ -178,7 +170,7 @@ function App() {
                 <BrandsPage
                   cartItems={cartItems}
                   addToCart={addToCart}
-                  user={user}
+                  user={isSignedIn ? user : null}
                   onRequireSignIn={() => setShowAuthModal("signin")}
                 />
               }
@@ -199,7 +191,7 @@ function App() {
               element={
                 <ProductDetailPage
                   addToCart={addToCart}
-                  user={user}
+                  user={isSignedIn ? user : null}
                   onRequireSignIn={() => setShowAuthModal("signin")}
                 />
               }
@@ -212,8 +204,6 @@ function App() {
         <AuthModals
           showModal={showAuthModal}
           onClose={() => setShowAuthModal(null)}
-          onLogin={handleLogin}
-          onSignup={handleLogin}
           onSwitch={(modal) => setShowAuthModal(modal)}
         />
       </div>
