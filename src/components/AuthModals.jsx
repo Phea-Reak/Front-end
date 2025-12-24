@@ -1,10 +1,8 @@
 import React from "react";
-import { SignIn, SignUp } from "@clerk/clerk-react";
+import { SignIn } from "@clerk/clerk-react";
 
 const AuthModals = ({ showModal, onClose }) => {
   if (!showModal) return null;
-
-  const isSignIn = showModal === "signin";
 
   return (
     <div
@@ -21,15 +19,7 @@ const AuthModals = ({ showModal, onClose }) => {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: "420px",
-          background: "#fff",
-          borderRadius: "14px",
-          padding: "20px",
-          boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
-        }}
+        style={{ position: "relative" }}
       >
         {/* Close Button */}
         <button
@@ -48,25 +38,15 @@ const AuthModals = ({ showModal, onClose }) => {
           ×
         </button>
 
-        {isSignIn ? (
-          <SignIn
-            routing="virtual"
-            appearance={{
-              elements: {
-                footer: "hidden", // remove Clerk footer links
-              },
-            }}
-          />
-        ) : (
-          <SignUp
-            routing="virtual"
-            appearance={{
-              elements: {
-                footer: "hidden",
-              },
-            }}
-          />
-        )}
+        {/* Sign In only */}
+        <SignIn
+          routing="virtual"
+          appearance={{
+            elements: {
+              footer: "hidden", // hide Clerk footer
+            },
+          }}
+        />
       </div>
     </div>
   );
